@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Profilini Düzenle</title>
+</head>
+<body>
+    <h1>Profilini Düzenle</h1>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li style="color: green;">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <h2>Kişisel Bilgiler</h2>
+        {{ kullanici_formu.as_p }}
+        
+        <h2>Oyuncu Bilgileri</h2>
+        <p><i>Yönetici puanları (Yetenek/Kişilik) sadece grup yöneticileri tarafından belirlenebilir.</i></p>
+        {{ profil_formu.as_p }}
+        
+        <button type="submit">Profilimi Güncelle</button>
+        <a href="{% url 'ana_sayfa' %}">Ana Sayfaya Dön</a>
+    </form>
+</body>
+</html>

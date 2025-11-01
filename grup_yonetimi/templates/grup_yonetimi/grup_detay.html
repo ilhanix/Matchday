@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ grup.grup_adi }} Detayları</title>
+</head>
+<body>
+    <h1>{{ grup.grup_adi }}</h1>
+    
+    <a href="{% url 'mac_listesi' grup.id %}">[Maçlara Git]</a> | 
+    <a href="{% url 'ana_sayfa' %}">[Ana Sayfaya Dön]</a>
+
+    <hr>
+    
+    {% if not grup_durumu %}
+        <h2>Gruba Katıl</h2>
+        <p>Bu gruba üye değilsiniz.</p>
+        <form method="post" action="{% url 'grup_katil' grup.id %}">
+            {% csrf_token %}
+            <button type="submit">Gruba Katılım Talebi Gönder</button>
+        </form>
+    {% elif grup_durumu.onay_durumu == 'B' %}
+        <p style="color: orange;">Katılım talebiniz beklemede. Yönetici onayını bekleyiniz.</p>
+    {% elif grup_durumu.onay_durumu == 'O' %}
+        <p style="color: green;">Bu grubun onaylı üyesisiniz. Maçlara katılabilirsiniz!</p>
+    {% endif %}
+
+    {% if is_yonetici and bekleyen_talepler %}
+        <h2>📝 Bekleyen Katılım Talepleri ({{ bekleyen_talepler|length }})</h2>
+        <ul>
+            {% for talep in bekleyen_talepler %}
+                <li>
+                    {{ talep.oyuncu.username }} ({{ talep.oyuncu.email|default:"E-posta yok" }})
+                    
+                    <form method="post" action="{% url 'grup_onayla' talep.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="onayla" style="color: green;">Onayla</button>
+                    </form>
+                    
+                    <form method="post" action="{% url 'grup_onayla' talep.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="reddet" style="color: red;">Reddet</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <h2>👥 Grup Üyeleri ({{ uyeler|length }})</h2>
+    <ul>
+        {% for uye in uyeler %}
+            <li>
+                {{ uye.oyuncu.username }} - Mevki: {{ uye.oyuncu.oyuncuprofili.get_mevkii_display|default:"Belirtilmemiş" }} 
+                (Maç: {{ uye.oynadigi_mac }}, Gol: {{ uye.gol }})
+            </li>
+        {% endfor %}
+    </ul>
+    
+</body>
+</html>

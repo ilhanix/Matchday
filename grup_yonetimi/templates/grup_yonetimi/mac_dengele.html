@@ -1,0 +1,30 @@
+<h1>{{ grup.grup_adi }} için Maç Dengeleme</h1>
+
+{% if hata %}
+    <p style="color: red;">Hata: {{ hata }}</p>
+{% endif %}
+
+<p>Şu anda onaylı <strong>{{ oyuncular|length }}</strong> oyuncu bulunmaktadır.</p>
+{% with oyuncu_sayisi=oyuncular|length %}
+    {% if oyuncu_sayisi >= 2 and oyuncu_sayisi|divisibleby:2 %}
+    <form method="post">
+        {% csrf_token %}
+        <label for="tarih">Maç Tarihi ve Saati:</label>
+        <input type="datetime-local" id="tarih" name="tarih" required><br><br>
+        
+        <label for="yer">Yer:</label>
+        <input type="text" id="yer" name="yer"><br><br>
+
+        <button type="submit">Maçı Oluştur & Takımları Dengele</button>
+    </form>
+    {% else %}
+        <p>Takım dengelemesi için minimum 2, çift sayıda oyuncu gereklidir.</p>
+    {% endif %}
+{% endwith %}
+
+<h2>Onaylı Oyuncular</h2>
+<ul>
+{% for oyuncu_istatistik in oyuncular %}
+    <li>{{ oyuncu_istatistik.oyuncu.username }} (Mevki: {{ oyuncu_istatistik.oyuncu.oyuncuprofili.get_mevkii_display }})</li>
+{% endfor %}
+</ul>

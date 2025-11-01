@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Giriş Yap</title>
+</head>
+<body>
+    <h1>Halı Saha Uygulamasına Giriş</h1>
+
+    <form method="post">
+        {% csrf_token %}
+
+        {{ form.as_p }} 
+
+        <button type="submit">Giriş Yap</button>
+    </form>
+    
+    <input type="hidden" name="next" value="{{ next }}" />
+
+    <p>Hesabınız yok mu? 
+            <a href="{% url 'kayit' %}">Kayıt Olun</a>
+        </p>
+</body>
+</html>

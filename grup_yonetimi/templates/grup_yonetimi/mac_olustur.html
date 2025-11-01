@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ grup.grup_adi }} - Maç Planla</title>
+</head>
+<body>
+    <h1>{{ grup.grup_adi }} için Yeni Maç Planla</h1>
+
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li style="color: green;">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="post">
+        {% csrf_token %}
+        {{ form.as_p }}
+        <button type="submit">Maçı Oluştur</button>
+    </form>
+    
+    <p><a href="{% url 'mac_listesi' grup.id %}">Geri Dön</a></p>
+</body>
+</html>

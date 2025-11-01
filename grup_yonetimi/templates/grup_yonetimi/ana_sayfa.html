@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Ana Sayfa | Halı Saha Uygulaması</title>
+</head>
+<body>
+    <h1>Hoş Geldiniz, {{ user.username }}!</h1>
+    <p>
+        <a href="{% url 'profil_duzenle' %}">[Profilini Düzenle]</a> 
+    </p>
+    <p>
+        <a href="{% url 'grup_olustur' %}">Grup Oluştur</a> 
+    </p>
+    <p>Bu, gruplarınızı yönetebileceğiniz ve maçları organize edebileceğiniz Ana Sayfanızdır.</p>
+
+    <h2>⚽ Yönettiğiniz Gruplar</h2>
+    {% if yonetilen_gruplar %}
+        <ul>
+            {% for grup in yonetilen_gruplar %}
+                <li>
+                    <strong>{{ grup.grup_adi }}</strong> (Yönetici sizsiniz)
+                    <a href="{% url 'mac_listesi' grup.id %}">[Maç Listesi]</a>
+                    <a href="{% url 'mac_olustur_dengele' grup.id %}">[Yeni Maç Dengele]</a>
+                    </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Henüz yönettiğiniz bir grup yok. Yeni bir grup oluşturabilirsiniz.</p>
+        <a href="{% url 'grup_olustur' %}">Grup Oluştur</a> {% endif %}
+
+ <hr>
+    
+    <h2>✅ Onaylı Gruplarım (Maç Oyna)</h2>
+    {% if onayli_gruplarim %}
+        <ul>
+            {% for grup in onayli_gruplarim %}
+                <li>
+                    <strong>{{ grup.grup_adi }}</strong> 
+                    
+                    {% if grup.yonetici == user %} 
+                        (Yönetici) 
+                        <a href="{% url 'grup_detay' grup.id %}" style="color: purple;">[Yönet & Talepleri Gör]</a> {% endif %}
+                    
+                    <a href="{% url 'mac_listesi' grup.id %}">[Maçlar & Dengele]</a>
+                    
+                    {% if grup.yonetici != user %}
+                        <form method="post" action="{% url 'grup_ayril' grup.id %}" style="display:inline;" onsubmit="return confirm('Bu gruptan ayrılmak istediğinizden emin misiniz?');">
+                            {% csrf_token %}
+                            <button type="submit" style="color: red; border: none; background: none; cursor: pointer;">[Ayrıl]</button>
+                        </form>
+                    {% endif %}
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Henüz onaylı bir grubunuz yok.</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>⏳ Talep Gönderdiğim Gruplar</h2>
+    {% if talep_gonderilen_gruplar %}
+        <ul>
+            {% for grup in talep_gonderilen_gruplar %}
+                <li>
+                    {{ grup.grup_adi }} (Onay Bekliyor)
+                    
+                    <form method="post" action="{% url 'grup_talep_iptal' grup.id %}" style="display:inline;" onsubmit="return confirm('Katılım talebinizi iptal etmek istediğinizden emin misiniz?');">
+                        {% csrf_token %}
+                        <button type="submit" style="color: orange; border: none; background: none; cursor: pointer;">[Talebi İptal Et]</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Bekleyen katılım talebiniz yok.</p>
+    {% endif %}
+
+    <hr>
+
+    <h2>➕ Katılabileceğim Gruplar</h2>
+    {% if katilabilecegim_gruplar %}
+        <ul>
+            {% for grup in katilabilecegim_gruplar %}
+                <li>
+                    {{ grup.grup_adi }} 
+                    <form method="post" action="{% url 'grup_katil' grup.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" style="color: blue; border: 1px solid blue; cursor: pointer;">[Katılım Talebi Gönder]</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Şu anda katılabileceğiniz başka grup bulunmamaktadır.</p>
+    {% endif %}
+
+    <hr>
+    <form action="{% url 'logout' %}" method="post" style="display: inline;">
+        {% csrf_token %}
+        <button type="submit" style="background: none; border: none; color: blue; cursor: pointer; text-decoration: underline; padding: 0;">
+            Çıkış Yap
+        </button>
+    </form>
+</body>
+</html>

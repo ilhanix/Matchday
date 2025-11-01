@@ -1,0 +1,45 @@
+<h1>{{ mac.grup.grup_adi }} - Takım Dağılımı</h1>
+<h2>{{ mac.tarih }} @ {{ mac.yer }}</h2>
+
+{% if mac.takim_a_denge_puani or mac.takim_b_denge_puani %}
+    <p><strong>Son Dengeleme Sonucu (Otomatik):</strong></p>
+    <ul>
+        <li>Takım A Puanı: {{ mac.takim_a_denge_puani }}</li>
+        <li>Takım B Puanı: {{ mac.takim_b_denge_puani }}</li>
+        <li style="color: '{{ mac.denge_renk }}'">Puan Farkı: {{ mac.denge_farki }}</li>
+    </ul>
+{% endif %}
+
+<hr>
+
+<form method="post">
+    {% csrf_token %}
+
+    <table border="1" cellpadding="5">
+        <thead>
+            <tr>
+                <th>Oyuncu (Puan)</th>
+                <th>Mevki</th>
+                <th>Takım A</th>
+                <th>Takım B</th>
+                <th>Atanmamış</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for oyuncu_data in oyuncular_puanli %}
+                <tr>
+                    <td>{{ oyuncu_data.oyuncu.username }} ({{ oyuncu_data.puan }})</td>
+                    <td>{{ oyuncu_data.mevkii }}</td>
+                    
+                    <td><input type="radio" name="atama_{{ oyuncu_data.oyuncu.id }}" value="A" {% if oyuncu_data.takim == 'A' %}checked{% endif %}></td>
+                    <td><input type="radio" name="atama_{{ oyuncu_data.oyuncu.id }}" value="B" {% if oyuncu_data.takim == 'B' %}checked{% endif %}></td>
+                    <td><input type="radio" name="atama_{{ oyuncu_data.oyuncu.id }}" value="None" {% if not oyuncu_data.takim %}checked{% endif %}></td>
+                </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+
+    <button type="submit">Manuel Atamayı Kaydet</button>
+</form>
+
+<p><a href="{% url 'mac_listesi' mac.grup.id %}">Geri Dön</a></p>

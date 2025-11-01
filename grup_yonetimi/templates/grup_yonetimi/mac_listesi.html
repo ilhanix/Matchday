@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ grup.grup_adi }} - Maç Listesi</title>
+</head>
+<body>
+    {% load custom_filters %}
+   <h1>{{ grup.grup_adi }} Maç Listesi</h1>
+
+{% if is_yonetici %}
+    <p>
+        <a href="{% url 'mac_olustur' grup.id %}">[Yeni Maç Planla]</a>
+    </p>
+{% endif %}
+
+<p><a href="{% url 'ana_sayfa' %}">Grup Merkezi</a></p>
+
+{% if messages %}
+    <ul class="messages">
+        {% for message in messages %}
+            <li style="color: green;">{{ message }}</li>
+        {% endfor %}
+    </ul>
+{% endif %}
+
+<hr>
+
+<h2>📅 Yaklaşan Maçlar</h2>
+{% if gelecek_maclar %}
+    <ul>
+        {% for mac in gelecek_maclar %}
+            <li>
+                {% if is_yonetici %}
+                    <span style="margin-left: 20px;">| Yön. İşlemleri:</span>
+                    
+                    <form method="post" action="{% url 'mac_dengele_otomatik' mac.id %}" style="display:inline;" onsubmit="return confirm('Optimal dengeleme yapılsın mı?');">
+                        {% csrf_token %}
+                        <button type="submit" style="color: blue;">[Otomatik Dengele]</button>
+                    </form>
+                    
+                    <a href="{% url 'mac_dengele_manuel' mac.id %}" style="color: purple;">[Manuel Böl]</a>
+                    
+                    {% if not mac.oynandi_mi %}
+                        <a href="{% url 'mac_sonucu_gir' mac.id %}" style="color: darkgreen;">[Sonuç Gir]</a>
+                    {% endif %}
+                    <form action="{% url 'mac_sil' mac.id %}" method="post" style="display:inline;" onsubmit="return confirm('Bu maçı silmek istediğinizden emin misiniz?');">
+                        {% csrf_token %}
+                        <button type="submit" style="color: red; border: none; background: none; cursor: pointer;">[İptal Et/Sil]</button>
+                    </form>
+                {% endif %}
+                
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Yaklaşan maç bulunmamaktadır.</p>
+{% endif %}
+
+<hr>
+
+<h2>⚽ Geçmiş Maçlar</h2>
+{% if gecmis_maclar %}
+    <ul>
+        {% for mac in gecmis_maclar %}
+            <li>
+                {{ mac.tarih|date:"d M Y" }} @ {{ mac.saat }} - {{ mac.yer }} 
+                    {% if is_yonetici %}
+                        <a href="{% url 'mac_sonucu_gir' mac.id %}">[Düzenle]</a> 
+                    {% endif %}
+                {% if mac.oynandi_mi %} (Oynandı) {% else %} (İptal Edildi/Eski) {% endif %}
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <p>Henüz oynanmış maç bulunmamaktadır.</p>
+{% endif %}
+</body>
+</html>

@@ -1,0 +1,53 @@
+<h1>{{ grup.grup_adi }} - Maç Sonucu Girişi</h1>
+<h2>Maç Tarihi: {{ mac.tarih }}</h2>
+
+<form method="post">
+    {% csrf_token %}
+
+    <fieldset>
+        <legend>Skor</legend>
+        <label for="skor_a">Takım A Skor:</label>
+        <input type="number" id="skor_a" name="takim_a_skor" value="{{ mac.takim_a_skor }}" min="0" required>
+        
+        <label for="skor_b">Takım B Skor:</label>
+        <input type="number" id="skor_b" name="takim_b_skor" value="{{ mac.takim_b_skor }}" min="0" required>
+    </fieldset>
+    <br>
+
+    <fieldset>
+        <legend>Bireysel İstatistikler (Gol, Asist, Kartlar)</legend>
+
+        {% for takim_veri in takim_listesi %} 
+            
+            <h3>Takım {{ takim_veri.isim }} Oyuncuları</h3>
+            
+            <table border="1" cellpadding="5">
+                <thead>
+                    <tr>
+                        <th>Oyuncu</th>
+                        <th>Gol</th>
+                        <th>Asist</th>
+                        <th>Sarı Kart</th>
+                        <th>Kırmızı Kart</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mac_oyuncu in takim_veri.oyuncular %} 
+                        <tr>
+                            <td>{{ mac_oyuncu.oyuncu.username }}</td>
+                            {% with player_id=mac_oyuncu.oyuncu.id %}
+                                <td><input type="number" name="gol_{{ player_id }}" value="{{ mac_oyuncu.gol }}" min="0"></td>
+                                <td><input type="number" name="asist_{{ player_id }}" value="{{ mac_oyuncu.asist }}" min="0"></td>
+                                <td><input type="number" name="sari_{{ player_id }}" value="{{ mac_oyuncu.sari_kart }}" min="0"></td>
+                                <td><input type="number" name="kirmizi_{{ player_id }}" value="{{ mac_oyuncu.kirmizi_kart }}" min="0" max="1"></td>
+                            {% endwith %}
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            <br>
+        {% endfor %}
+    </fieldset>
+
+    <button type="submit">Maç Sonucunu ve İstatistikleri Kaydet</button>
+</form>

@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>Yeni Grup Oluştur</title>
+</head>
+<body>
+    <h1>Yeni Grup Oluştur</h1>
+    
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li{% if message.tags %} class="{{ message.tags }}"{% endif %}>{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <form method="post" enctype="multipart/form-data">
+        {% csrf_token %}
+        
+        <h2>Grup Bilgileri</h2>
+        {{ grup_formu.as_p }}
+        
+        <h2>Algoritma Ayarları (Varsayılan Önerilir)</h2>
+        <p><i>Bu ayarlar, oyuncu puanı hesaplama yöntemini belirler.</i></p>
+        {{ ayarlar_formu.as_p }}
+        
+        <button type="submit">Grubu Oluştur</button>
+        <a href="{% url 'ana_sayfa' %}">İptal</a>
+    </form>
+</body>
+</html>
