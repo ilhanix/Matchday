@@ -19,6 +19,7 @@ from .forms import KayitFormu, MacOlusturFormu # Import'lar listesine ekleyin
 from django.utils import timezone # EN ÜSTE EKLEYİN
 from django.contrib.auth import get_user_model # EN ÜSTE EKLEYİN
 User = get_user_model() # EN ÜSTE KULLANIN
+import random
 # from .forms import MacKatilimFormu # Formları daha sonra ekleyeceğiz
 # grup_yonetimi/views.py (mac_listesi fonksiyonunu bulun ve değiştirin)
 
@@ -845,3 +846,60 @@ def mac_dengele_manuel(request, mac_id):
         'denge_farki_renk': renk
     }
     return render(request, 'grup_yonetimi/mac_dengele_manuel.html', context)
+
+@login_required
+def test_katilimci_ata(request):
+    # Gerekli kontroller: Sadece superuser veya admin kullanmalı
+    if not request.user.is_superuser:
+        messages.error(request, "Bu aracı kullanmaya yetkiniz yok.")
+        return redirect('ana_sayfa')
+    
+    # Sadece oynanmamış, gelecekteki maçları çek
+    bugun = timezone.localdate()
+    planlanan_maclar = Mac.objects.filter(oynandi_mi=False, tarih__gte=bugun).order_by('tarih')
+    
+    if request.method == 'POST':
+        mac_id = request.POST.get('mac_id')
+        try:
+            katilimci_sayisi = int(request.POST.get('sayi', 0))
+        except ValueError:
+            messages.error(request, "Lütfen geçerli bir sayı girin.")
+            return redirect('test_katilimci_ata')
+            
+        mac = get_object_or_404(Mac, pk=mac_id)
+        grup = mac.grup
+        
+        if katilimci_sayisi <= 0:
+            messages.error(request, "Lütfen atanacak geçerli bir sayı girin.")
+            return redirect('test_katilimci_ata')
+
+        # 1. Gruba Onaylı Üyeleri Çek
+        # Sadece bu grubun onaylı üyeleri arasından seçim yap
+        uyeler_qs = GrupOyuncu.objects.filter(grup=grup, onay_durumu='O')
+        uyeler = list(uyeler_qs.values_list('oyuncu', flat=True)) # Oyuncu ID'leri listesi
+
+        if not uyeler:
+            messages.error(request, f"'{grup.grup_adi}' grubunda atanacak onaylı üye bulunmamaktadır.")
+            return redirect('test_katilimci_ata')
+            
+        # 2. Rastgele Kullanıcıları Seç
+        sayi_sec = min(katilimci_sayisi, len(uyeler))
+        rastgele_oyuncu_idler = random.sample(uyeler, k=sayi_sec)
+        
+        # 3. Eski Katılımları Temizle (Seçilen maç için)
+        MacKatilim.objects.filter(mac=mac).delete()
+        
+        # 4. Yeni Katılımları Oluştur (bulk_create ile hızlı kayıt)
+        yeni_katilimlar = []
+        for oyuncu_id in rastgele_oyuncu_idler:
+            yeni_katilimlar.append(MacKatilim(mac=mac, oyuncu_id=oyuncu_id))
+            
+        MacKatilim.objects.bulk_create(yeni_katilimlar)
+        
+        messages.success(request, f"Maç ID {mac_id} için {len(rastgele_oyuncu_idler)} rastgele katılımcı başarıyla atandı.")
+        return redirect('test_katilimci_ata')
+
+    context = {
+        'planlanan_maclar': planlanan_maclar,
+    }
+    return render(request, 'grup_yonetimi/test_katilimci_ata.html', context)

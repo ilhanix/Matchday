@@ -23,4 +23,5 @@ urlpatterns = [
     path('mac/<int:mac_id>/katilim/', views.mac_katilim_toggle, name='mac_katilim_toggle'), # <<< YENİ SATIR
     path('mac/<int:mac_id>/dengele/otomatik/', views.mac_dengele_otomatik, name='mac_dengele_otomatik'), # <<< YENİ
     path('mac/<int:mac_id>/dengele/manuel/', views.mac_dengele_manuel, name='mac_dengele_manuel'), # <<< YENİ
+    path('test-katilimci-ata/', views.test_katilimci_ata, name='test_katilimci_ata'), # <<< YENİ SATIR
 ]

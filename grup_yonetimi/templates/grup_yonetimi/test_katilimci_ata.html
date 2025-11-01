@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <title>TEST ARACI: Rastgele Katılımcı Ata</title>
+</head>
+<body>
+    <h1>TEST ARACI: Rastgele Katılımcı Ata</h1>
+    <p>Bu araç, dengeleme algoritmasını test etmek için planlanmış maçlara hızlıca rastgele katılımcılar atar.</p>
+    
+    {% if messages %}
+        <ul class="messages">
+            {% for message in messages %}
+                <li style="color: green;">{{ message }}</li>
+            {% endfor %}
+        </ul>
+    {% endif %}
+
+    <hr>
+    
+    {% if planlanan_maclar %}
+        <form method="post">
+            {% csrf_token %}
+            
+            <table border="1" cellpadding="5">
+                <thead>
+                    <tr>
+                        <th>Maç</th>
+                        <th>Maç Yeri</th>
+                        <th>Grup</th>
+                        <th>Katılımcı Sayısı (Atanacak)</th>
+                        <th>Eylem</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for mac in planlanan_maclar %}
+                        <tr>
+                            <td>{{ mac.tarih }} @ {{ mac.saat }}</td>
+                            <td>{{ mac.yer }}</td>
+                            <td>{{ mac.grup.grup_adi }} (Onaylı Üye: {{ mac.grup.grupoyuncu_set.filter.count }})</td>
+                            <td>
+                                <input type="number" name="sayi" min="1" max="{{ mac.grup.grupoyuncu_set.filter.count }}" value="10" required>
+                                <input type="hidden" name="mac_id" value="{{ mac.id }}">
+                            </td>
+                            <td>
+                                <button type="submit" onclick="return confirm('Maç ID {{ mac.id }} için rastgele atama yapılacaktır. Emin misiniz?');">Kullanıcı Ata</button>
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </form>
+    {% else %}
+        <p>Henüz planlanmış oynanmamış maç bulunmamaktadır.</p>
+    {% endif %}
+
+    <p><a href="{% url 'ana_sayfa' %}">Ana Sayfaya Dön</a></p>
+</body>
+</html>
