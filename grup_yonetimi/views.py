@@ -3,7 +3,7 @@
 from django.contrib.auth.models import User
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib.auth.decorators import login_required
-from .models import Grup, GrupOyuncu, Mac, MacOyuncu, MacKatilim
+from .models import Grup, GrupOyuncu, Mac, MacOyuncu, MacKatilim, GrupDavet
 from django.contrib.auth.models import User
 from .utils import find_optimal_teams # Dengeleme fonksiyonumuz
 from django.contrib.auth.views import LogoutView
@@ -189,6 +189,10 @@ def ana_sayfa(request):
     # Yönetilen grupların ID'leri (Yönetilen gruplar otomatik onaylı sayılır)
     yonetilen_grup_ids = Grup.objects.filter(yonetici=user).values_list('id', flat=True)
 
+    davet_edilen_grup_ids = GrupDavet.objects.filter(
+        davet_edilen=user,
+        durum='B'
+    ).values_list('grup_id', flat=True)
     # 2. KATEGORİLERİ OLUŞTURMA
     
     # A) ONAYLI GRUPLARIM (Yönetilenler + Onaylı Üyelikler)
@@ -206,16 +210,31 @@ def ana_sayfa(request):
     # - Yönetilenleri,
     # - Onaylı olduklarımı, 
     # - Talep gönderdiklerimi çıkar.
+    # Gizlilik Kuralı: Herkese açık olanlar
+    acik_gruplar_ids = Grup.objects.filter(herkese_gorunur=True).values_list('id', flat=True)
+    
+    # Davet Kuralı: Kullanıcının davet edildiği gruplar (kapalı olsa bile görünür)
+    davet_gruplar_ids = davet_edilen_grup_ids
+    
+    # Tüm görünür grupların ID'leri
+    gorunur_gruplar_ids = list(acik_gruplar_ids) + list(davet_gruplar_ids)
+
     tum_iliskili_gruplar_ids = list(onayli_grup_ids) + list(bekleyen_grup_ids) + list(yonetilen_grup_ids)
 
-    katilabilecegim_gruplar = Grup.objects.exclude(
+    katilabilecegim_gruplar = Grup.objects.filter(
+        id__in=gorunur_gruplar_ids
+    ).exclude(
         id__in=tum_iliskili_gruplar_ids
     ).distinct()
+
+    # D) DAVET EDİLDİĞİM GRUPLAR (Yeni Kategori)
+    davet_gruplari = Grup.objects.filter(id__in=davet_edilen_grup_ids)
 
     context = {
         'onayli_gruplarim': onayli_gruplarim,
         'talep_gonderilen_gruplar': talep_gonderilen_gruplar,
         'katilabilecegim_gruplar': katilabilecegim_gruplar,
+        'davet_gruplari': davet_gruplari, # Davet edildiğim gruplar
         'yonetilen_gruplar': Grup.objects.filter(yonetici=user), # Yönetilenler ayrı bir liste olarak kalsın
     }
     
@@ -474,12 +493,29 @@ def grup_detay(request, grup_id):
     if grup.yonetici == user:
         # Yönetici ise, bekleyen tüm talepleri göster
         bekleyen_talepler = GrupOyuncu.objects.filter(grup=grup, onay_durumu='B')
+    is_yonetici = (grup.yonetici == request.user)
+
+    if request.method == 'POST' and is_yonetici:
+        # 1. Grup Bilgilerini Düzenleme (Gizlilik ayarı dahil)
+        form = GrupForm(request.POST, request.FILES, instance=grup)
+        if form.is_valid():
+            form.save()
+            messages.success(request, f"'{grup.grup_adi}' bilgileri güncellendi.")
+            return redirect('grup_detay', grup_id=grup.id)
+        else:
+            messages.error(request, "Grup bilgileri güncellenirken bir hata oluştu.")
+            # Form hatalıysa, mevcut sayfayı tekrar render et
+            # (form aşağıda context ile tekrar gönderilecektir)
     
+    else:
+        # GET isteği veya yetkisiz POST
+        form = GrupForm(instance=grup) # Mevcut grup verileriyle formu doldur
     # Grup üyelerini çek (Sadece onaylanmış olanlar)
     uyeler = GrupOyuncu.objects.filter(grup=grup, onay_durumu='O').select_related('oyuncu')
 
     context = {
         'grup': grup,
+        'grup_formu': form,
         'grup_durumu': grup_durumu, # None, Beklemede, Onaylandı
         'bekleyen_talepler': bekleyen_talepler, # Sadece yöneticiye görünür
         'uyeler': uyeler,
@@ -812,11 +848,11 @@ def mac_dengele_manuel(request, mac_id):
                 try:
                     oyuncu_id = key.split('_')[1]
                     oyuncu = get_object_or_404(User, pk=oyuncu_id)
-                    g_oyuncu = get_object_or_404(GrupOyuncu, grup=grup, oyunc=oyuncu)
+                    g_oyuncu = get_object_or_404(GrupOyuncu, grup=grup, oyuncu=oyuncu)
                     puan = g_oyuncu.hesapla_seviye_puani()
 
                     # Yeni MacOyuncu kaydını oluştur
-                    MacOyuncu.objects.create(mac=mac, oyunc=oyuncu, takim=value)
+                    MacOyuncu.objects.create(mac=mac, oyuncu=oyuncu, takim=value)
 
                     # Puanları topla
                     if value == 'A':
@@ -903,3 +939,117 @@ def test_katilimci_ata(request):
         'planlanan_maclar': planlanan_maclar,
     }
     return render(request, 'grup_yonetimi/test_katilimci_ata.html', context)
+
+# grup_yonetimi/views.py (Diğer fonksiyonların yanına ekleyin)
+
+@login_required
+@require_POST
+def davet_kabul_et(request, grup_id):
+    grup = get_object_or_404(Grup, pk=grup_id)
+    action = request.POST.get('action')
+
+    # Kullanıcıya ait bekleyen daveti çek
+    davet = get_object_or_404(GrupDavet, grup=grup, davet_edilen=request.user, durum='B')
+    
+    try:
+        if action == 'kabul':
+            with transaction.atomic():
+                # 1. GrupOyuncu kaydını oluştur (Otomatik Onaylı)
+                GrupOyuncu.objects.create(
+                    grup=grup,
+                    oyuncu=request.user,
+                    onay_durumu='O'
+                )
+                # 2. Davet durumunu güncelle/sil
+                davet.durum = 'K'
+                davet.save()
+            messages.success(request, f"'{grup.grup_adi}' davetini kabul ettiniz ve gruba katıldınız!")
+            
+        elif action == 'reddet':
+            davet.durum = 'R'
+            davet.save()
+            messages.info(request, f"'{grup.grup_adi}' davetini reddettiniz.")
+            
+        return redirect('ana_sayfa')
+
+    except IntegrityError:
+        messages.error(request, "Bu gruba zaten üyesiniz veya bekleyen bir talebiniz var.")
+        davet.delete()
+        return redirect('ana_sayfa')
+    
+
+# grup_yonetimi/views.py (Diğer fonksiyonların yanına ekleyin)
+
+@login_required
+@require_POST
+def davet_gonder(request, grup_id):
+    grup = get_object_or_404(Grup, pk=grup_id)
+    
+    # Yöneticilik Kontrolü
+    if grup.yonetici != request.user:
+        messages.error(request, "Yalnızca grup yöneticisi davet gönderebilir.")
+        return redirect('grup_detay', grup_id=grup.id)
+
+    # Davet edilecek kullanıcının kullanıcı adı/e-postası
+    davet_edilecek_user_key = request.POST.get('davet_edilecek_user')
+    
+    if not davet_edilecek_user_key:
+        messages.error(request, "Lütfen davet edilecek bir kullanıcı adı veya e-posta girin.")
+        return redirect('grup_detay', grup_id=grup.id)
+
+    # 1. Kullanıcıyı Bulma
+    try:
+        # Kullanıcı adı veya e-posta ile arama yap
+        davet_edilen_kullanici = User.objects.get(
+            Q(username=davet_edilecek_user_key) | Q(email=davet_edilecek_user_key)
+        )
+    except User.DoesNotExist:
+        messages.error(request, f"'{davet_edilecek_user_key}' kullanıcı adı veya e-posta ile bir kullanıcı bulunamadı.")
+        return redirect('grup_detay', grup_id=grup.id)
+
+    # 2. Kontroller
+    
+    # A) Kendini davet etme engeli
+    if davet_edilen_kullanici == request.user:
+        messages.warning(request, "Kendinize davet gönderemezsiniz.")
+        return redirect('grup_detay', grup_id=grup.id)
+        
+    try:
+        # B) Zaten üye mi? (Hem onaylı hem de bekleyen)
+        GrupOyuncu.objects.get(grup=grup, oyuncu=davet_edilen_kullanici)
+        messages.warning(request, f"'{davet_edilen_kullanici.username}' zaten bu grubun bir üyesi veya üyelik talebi beklemede.")
+        return redirect('grup_detay', grup_id=grup.id)
+        
+    except GrupOyuncu.DoesNotExist:
+        pass # Üye değil, devam et
+
+    # C) Zaten bekleyen davet var mı?
+    eski_davet = GrupDavet.objects.filter(grup=grup, davet_edilen=davet_edilen_kullanici).first()
+
+    try:
+        if eski_davet:
+            if eski_davet.durum == 'B':
+                # Beklemedeyse tekrar gönderme.
+                messages.warning(request, f"'{davet_edilen_kullanici.username}' için zaten BEKLEYEN bir davetiniz var.")
+                return redirect('grup_detay', grup_id=grup.id)
+            else:
+                # Reddedilmişse (R) veya Kabul edilmişse (K), yeni bir 'B' durumuna güncelle
+                eski_davet.durum = 'B'
+                eski_davet.gonderen = request.user # Daveti gönderen kişiyi güncelle (yöneticinin değişme ihtimaline karşı)
+                eski_davet.davet_zamani = timezone.now()
+                eski_davet.save()
+                messages.success(request, f"'{davet_edilen_kullanici.username}' adlı kullanıcıya davet başarıyla YENİLENDİ.")
+
+        else:
+            # Yeni Daveti Oluştur
+            GrupDavet.objects.create(
+                grup=grup,
+                gonderen=request.user,
+                davet_edilen=davet_edilen_kullanici
+            )
+            messages.success(request, f"'{davet_edilen_kullanici.username}' adlı kullanıcıya davet başarıyla gönderildi.")
+
+    except Exception as e:
+        messages.error(request, f"Davet gönderilirken bir hata oluştu: {e}")
+        
+    return redirect('grup_detay', grup_id=grup.id)

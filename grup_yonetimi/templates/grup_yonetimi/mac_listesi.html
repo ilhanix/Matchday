@@ -31,6 +31,7 @@
     <ul>
         {% for mac in gelecek_maclar %}
             <li>
+                {{ mac.tarih|date:"d M Y" }} @ {{ mac.saat }} - {{ mac.yer }} 
                 {% if is_yonetici %}
                     <span style="margin-left: 20px;">| Yön. İşlemleri:</span>
                     

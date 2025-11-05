@@ -11,7 +11,40 @@
     <a href="{% url 'ana_sayfa' %}">[Ana Sayfaya Dön]</a>
 
     <hr>
+    {% if grup.yonetici == user %}
+    <h2>Yöneticilik Kontrolleri</h2>
+    <hr>
+    <h3>Grup Bilgilerini ve Gizliliği Düzenle</h3>
+    <form method="post" enctype="multipart/form-data" action="{% url 'grup_detay' grup.id %}">
+        {% csrf_token %}
+        <p>
+            <label for="{{ grup_formu.grup_adi.id_for_label }}">Grup Adı:</label>
+            {{ grup_formu.grup_adi }}
+        </p>
+        
+        <p>
+            <label for="{{ grup_formu.grup_resmi.id_for_label }}">Grup Resmi:</label>
+            {{ grup_formu.grup_resmi }}
+        </p>
+
+        <p>
+            {{ grup_formu.herkese_gorunur }}
+            <label for="{{ grup_formu.herkese_gorunur.id_for_label }}">Herkese Açık (Katılım Listesinde Görünür)</label>
+        </p>
+        
+        <button type="submit">Grup Ayarlarını Kaydet</button>
+    </form>
+    <h3>Oyuncu Davet Et</h3>
+    <form method="post" action="{% url 'davet_gonder' grup.id %}">
+        {% csrf_token %}
+        <label for="davet_edilecek_user">Kullanıcı Adı veya E-posta:</label>
+        <input type="text" id="davet_edilecek_user" name="davet_edilecek_user" required placeholder="Kullanıcı Adı / E-posta">
+        <button type="submit">Davet Gönder</button>
+    </form>
     
+    <hr>
+    
+{% endif %}
     {% if not grup_durumu %}
         <h2>Gruba Katıl</h2>
         <p>Bu gruba üye değilsiniz.</p>

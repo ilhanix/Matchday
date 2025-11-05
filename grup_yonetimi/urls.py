@@ -24,4 +24,6 @@ urlpatterns = [
     path('mac/<int:mac_id>/dengele/otomatik/', views.mac_dengele_otomatik, name='mac_dengele_otomatik'), # <<< YENİ
     path('mac/<int:mac_id>/dengele/manuel/', views.mac_dengele_manuel, name='mac_dengele_manuel'), # <<< YENİ
     path('test-katilimci-ata/', views.test_katilimci_ata, name='test_katilimci_ata'), # <<< YENİ SATIR
+    path('davet/<int:grup_id>/yanit/', views.davet_kabul_et, name='davet_kabul_et'), # <<< YENİ
+    path('grup/<int:grup_id>/davet-gonder/', views.davet_gonder, name='davet_gonder'), # <<< YENİ
 ]

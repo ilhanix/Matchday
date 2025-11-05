@@ -12,7 +12,11 @@ class GrupForm(forms.ModelForm):
     # Bu form ile kullanıcı sadece Grup Adı ve Resmi girecek.
     class Meta:
         model = Grup
-        fields = ['grup_adi', 'grup_resmi']
+        # KRİTİK: 'herkese_gorunur' alanını fields listesine ekleyin
+        fields = ['grup_adi', 'grup_resmi', 'herkese_gorunur'] # <<< GÜNCELLENDİ
+        widgets = {
+            'grup_adi': forms.TextInput(attrs={'placeholder': 'Grubunuza bir isim verin'}),
+        }
         
 class GrupAyarlariForm(forms.ModelForm):
     # Bu form ile grup ayarlarını varsayılan değerlerle oluşturabiliriz.

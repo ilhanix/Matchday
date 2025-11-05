@@ -81,7 +81,30 @@
     {% endif %}
 
     <hr>
+    <h2>✉️ Davet Edildiğim Gruplar</h2>
+    {% if davet_gruplari %}
+        <ul>
+            {% for grup in davet_gruplari %}
+                <li>
+                    <strong>{{ grup.grup_adi }}</strong> (Gizli olabilir)
+                    
+                    <form method="post" action="{% url 'davet_kabul_et' grup.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="kabul" style="color: green;">[Kabul Et]</button>
+                    </form>
+                    
+                    <form method="post" action="{% url 'davet_kabul_et' grup.id %}" style="display:inline;">
+                        {% csrf_token %}
+                        <button type="submit" name="action" value="reddet" style="color: red;">[Reddet]</button>
+                    </form>
+                </li>
+            {% endfor %}
+        </ul>
+    {% else %}
+        <p>Bekleyen grup davetiniz bulunmamaktadır.</p>
+    {% endif %}
 
+    <hr>
     <h2>➕ Katılabileceğim Gruplar</h2>
     {% if katilabilecegim_gruplar %}
         <ul>

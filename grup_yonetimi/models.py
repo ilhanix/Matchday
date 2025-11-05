@@ -35,7 +35,9 @@ class Grup(models.Model):
     grup_resmi = models.ImageField(upload_to='grup_resimleri/', null=True, blank=True)
     # Grubun yöneticisi: Bir kullanıcı (User) ile ilişkilendirildi.
     yonetici = models.ForeignKey(User, on_delete=models.CASCADE, related_name='yönettigi_gruplar')
-
+    # <<< YENİ ALAN: Herkese Görünür Özelliği >>>
+    herkese_gorunur = models.BooleanField(default=True, verbose_name="Herkese Açık (Listelensin mi?)")
+    # ----------------------------------------
     def __str__(self):
         return self.grup_adi
 
@@ -222,3 +224,21 @@ class GrupAyarlari(models.Model):
     
     def __str__(self):
         return f"{self.grup.grup_adi} Ayarları"
+    
+class GrupDavet(models.Model):
+    grup = models.ForeignKey(Grup, on_delete=models.CASCADE, related_name='davetler')
+    gonderen = models.ForeignKey(User, on_delete=models.CASCADE, related_name='gonderilen_davetler')
+    davet_edilen = models.ForeignKey(User, on_delete=models.CASCADE, related_name='alınan_davetler')
+    
+    # Durum: B: Beklemede, K: Kabul Edildi, R: Reddedildi
+    durum = models.CharField(max_length=1, choices=[('B', 'Beklemede'), ('K', 'Kabul Edildi'), ('R', 'Reddedildi')], default='B')
+    davet_zamani = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        # Aynı kullanıcıya, aynı gruba tekrar davet gönderilemez
+        unique_together = ('grup', 'davet_edilen')
+        verbose_name = "Grup Daveti"
+        verbose_name_plural = "Grup Davetleri"
+        
+    def __str__(self):
+        return f"{self.grup.grup_adi} Daveti -> {self.davet_edilen.username}"
